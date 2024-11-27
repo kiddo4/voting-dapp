@@ -13,7 +13,7 @@ const votingAddress = new PublicKey("AsjZ3kWAUSQRNt2pZVeJkywhZ6gpLpHZmJjduPmKZDZ
 describe('votingdapp', () => {
   let context;
   let provider;
-  let votingProgram;
+  let votingProgram: anchor.Program<Votingdapp>;
 
   beforeAll(async () => {
      context = await startAnchor("", [{ name: "votingdapp", programId: votingAddress }], []);
@@ -26,13 +26,7 @@ describe('votingdapp', () => {
   });
   
   it('Initialize poll', async () => {
-    const context = await startAnchor("", [{ name: "votingdapp", programId: votingAddress }], []);
-    const provider = new BankrunProvider(context);
-
-    const votingProgram = new Program<Votingdapp>(
-      IDL,
-      provider,
-    );
+    
     await votingProgram.methods
       .initializePoll(
         new anchor.BN(1),
@@ -56,5 +50,42 @@ describe('votingdapp', () => {
       expect(poll.pollStart.toNumber()).toBeLessThan(poll.pollEnd.toNumber());
 
   });
-  it('initialize candidate', async () => {});
+  it('initialize candidate', async () => {
+    await votingProgram.methods
+      .initializeCandidate(
+        "Smooth",
+        new anchor.BN(1),
+      )
+      .rpc();
+  });
+
+  it('initialize candidate', async () => {
+    await votingProgram.methods
+      .initializeCandidate(
+        "Crunchy",
+        new anchor.BN(1),
+      )
+      .rpc();
+      const [crunchyAddress] = PublicKey.findProgramAddressSync(
+        [new anchor.BN(1).toArrayLike(Buffer, 'le', 8), Buffer.from("Crunchy")],
+        votingAddress,
+      );
+
+      const crunchyCandidate = await votingProgram.account.candidate.fetch(crunchyAddress);
+      console.log(crunchyCandidate);
+      expect(crunchyCandidate.candidateVotes.toNumber()).toEqual(0);
+
+      const [smoothAddress] = PublicKey.findProgramAddressSync(
+        [new anchor.BN(1).toArrayLike(Buffer, 'le', 8), Buffer.from("Smooth")],
+        votingAddress,
+      );
+
+      const smoothCandidate = await votingProgram.account.candidate.fetch(smoothAddress);
+      console.log(smoothCandidate);
+  });
+
+
+  it('vote', async () => {
+    
+  });
 });
